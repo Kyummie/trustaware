@@ -1,0 +1,40 @@
+{% extends 'employee/layout.html' %}
+{% block title %}{{ module.title }} - TrustAware{% endblock %}
+{% block content %}
+<a class="back" href="/dashboard">&larr; Back to my training</a>
+<h1>{{ module.title }}</h1>
+<p class="sub">{{ module.topic }}</p>
+
+{% if completion %}
+<div class="notice good">You completed this module with a score of {{ completion.score_at_completion }}%. You can review the videos or retake the quiz at any time.</div>
+{% endif %}
+
+{% for v in videos %}
+<div class="panel">
+    <h3>{{ loop.index }}. {{ v.title or 'Video ' ~ loop.index }}</h3>
+    {% if v.embed_url %}
+    <div class="video-wrap"><iframe src="{{ v.embed_url }}" title="{{ v.title or 'Training video' }}" allowfullscreen></iframe></div>
+    {% else %}
+    <a class="btn btn-ghost" href="{{ v.video_url }}" target="_blank" rel="noopener noreferrer">Open video in a new tab</a>
+    {% endif %}
+</div>
+{% else %}
+<div class="panel">No videos have been added to this module yet.</div>
+{% endfor %}
+
+<div class="panel">
+    <h3>Ready for the quiz?</h3>
+    <form action="/module/{{ module.id }}/quiz" method="get">
+        <label class="option">
+            <input type="checkbox" id="watched"> I have watched all the videos above
+        </label>
+        <button class="btn" id="startQuiz" type="submit" disabled>Take the quiz</button>
+    </form>
+</div>
+
+<script>
+    const box = document.getElementById('watched');
+    const btn = document.getElementById('startQuiz');
+    box.addEventListener('change', () => { btn.disabled = !box.checked; });
+</script>
+{% endblock %}

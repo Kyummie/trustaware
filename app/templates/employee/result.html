@@ -1,0 +1,20 @@
+{% extends 'employee/layout.html' %}
+{% block title %}Result - {{ module.title }}{% endblock %}
+{% block content %}
+<h1>{{ module.title }}</h1>
+<p class="sub">Quiz result</p>
+
+<div class="panel">
+    <div class="score">{{ score }}%</div>
+    <p>You answered {{ correct }} of {{ total }} questions correctly. The pass mark is {{ pass_mark }}%.</p>
+</div>
+
+{% if passed %}
+<div class="notice good">Well done. This module is now recorded as completed.</div>
+<a class="btn" href="/dashboard">Back to my training</a>
+{% else %}
+<div class="notice warn">Not quite there yet. Review the videos and try again. You will get a fresh set of questions.</div>
+<a class="btn btn-ghost" href="/module/{{ module.id }}">Review videos</a>
+<a class="btn" href="/module/{{ module.id }}/quiz">Retry quiz</a>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,27 @@
+{% extends 'employee/layout.html' %}
+{% block title %}My Training - TrustAware{% endblock %}
+{% block content %}
+<h1>Welcome, {{ full_name }}</h1>
+<p class="sub">Watch each video, then pass the quiz to complete a module.</p>
+
+<div class="progress">{{ completed }} of {{ total }} modules completed</div>
+
+{% if modules %}
+    {% for m in modules %}
+    <div class="card">
+        <div>
+            {% if m.completed %}
+                <span class="badge done">Completed</span>
+            {% else %}
+                <span class="badge todo">Not started</span>
+            {% endif %}
+            <h3>{{ m.title }}</h3>
+            <div class="meta">{{ m.topic }} · {{ m.video_count }} video{{ '' if m.video_count == 1 else 's' }} · {{ m.minutes }} min</div>
+        </div>
+        <a class="btn" href="/module/{{ m.id }}">{{ 'Review' if m.completed else 'Start' }}</a>
+    </div>
+    {% endfor %}
+{% else %}
+    <div class="empty">No modules have been assigned to your organisation yet.</div>
+{% endif %}
+{% endblock %}

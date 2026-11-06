@@ -1,0 +1,32 @@
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { font-family: 'Segoe UI', sans-serif; background: #f0f2f5; color: #0d1b2a; }
+.topbar { background: #0d1b2a; padding: 16px 32px; display: flex; justify-content: space-between; align-items: center; }
+.topbar a { color: #1abc9c; text-decoration: none; font-size: 14px; }
+.topbar .brand { color: white; font-weight: 700; font-size: 18px; }
+.container { max-width: 900px; margin: 32px auto; padding: 0 24px; }
+.back { display: inline-block; margin-bottom: 16px; color: #718096; text-decoration: none; font-size: 14px; }
+h1 { font-size: 26px; margin-bottom: 4px; }
+.sub { color: #718096; font-size: 14px; margin-bottom: 24px; }
+.panel { background: white; border-radius: 12px; padding: 22px; margin-bottom: 18px; }
+.panel h3 { font-size: 16px; margin-bottom: 12px; }
+.video-wrap { position: relative; padding-bottom: 56.25%; height: 0; border-radius: 8px; overflow: hidden; background: #0d1b2a; }
+.video-wrap iframe { position: absolute; top: 0; left: 0; width: 100%; height: 100%; border: 0; }
+.btn { background: #0d1b2a; color: white; border: none; text-decoration: none; padding: 12px 22px; border-radius: 8px; font-size: 15px; font-weight: 600; cursor: pointer; display: inline-block; }
+.btn:disabled { background: #a0aec0; cursor: not-allowed; }
+.btn-ghost { background: white; color: #0d1b2a; border: 1px solid #cbd5e0; }
+.notice { border-radius: 10px; padding: 14px 18px; margin-bottom: 18px; font-size: 14px; }
+.notice.good { background: #e1f5ee; color: #0f6e56; }
+.notice.warn { background: #fef3c7; color: #92400e; }
+.question p { margin-bottom: 12px; font-size: 16px; }
+.option { display: block; border: 1px solid #e2e8f0; border-radius: 8px; padding: 12px 14px; margin-bottom: 8px; cursor: pointer; font-size: 15px; }
+.option:hover { border-color: #1abc9c; }
+.option input { margin-right: 10px; }
+.score { font-size: 48px; font-weight: 700; margin: 8px 0; }
+.progress { background: white; border-radius: 12px; padding: 18px 22px; margin-bottom: 24px; font-size: 14px; }
+.card { background: white; border-radius: 12px; padding: 20px 22px; margin-bottom: 14px; display: flex; justify-content: space-between; align-items: center; gap: 16px; }
+.card h3 { font-size: 17px; margin-bottom: 4px; }
+.meta { color: #718096; font-size: 13px; }
+.badge { display: inline-block; font-size: 12px; font-weight: 600; padding: 3px 10px; border-radius: 99px; margin-bottom: 8px; }
+.badge.done { background: #e1f5ee; color: #0f6e56; }
+.badge.todo { background: #fef3c7; color: #92400e; }
+.empty { background: white; border-radius: 12px; padding: 32px; text-align: center; color: #718096; }

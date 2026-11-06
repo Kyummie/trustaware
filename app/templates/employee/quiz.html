@@ -1,0 +1,25 @@
+{% extends 'employee/layout.html' %}
+{% block title %}Quiz - {{ module.title }}{% endblock %}
+{% block content %}
+<a class="back" href="/module/{{ module.id }}">&larr; Back to the videos</a>
+<h1>Quiz: {{ module.title }}</h1>
+
+{% if questions %}
+<p class="sub">Answer every question. You need 70% to pass and you can retry as many times as you like.</p>
+<form method="post" action="/module/{{ module.id }}/quiz/submit">
+    {% for q in questions %}
+    <div class="panel question">
+        <p><strong>{{ loop.index }}.</strong> {{ q.text }}</p>
+        {% for key, text in q.options %}
+        <label class="option">
+            <input type="radio" name="q_{{ q.id }}" value="{{ key }}" required> {{ text }}
+        </label>
+        {% endfor %}
+    </div>
+    {% endfor %}
+    <button class="btn" type="submit">Submit answers</button>
+</form>
+{% else %}
+<div class="panel">No quiz questions have been added to this module yet. Please contact your administrator.</div>
+{% endif %}
+{% endblock %}
