@@ -1,0 +1,140 @@
+{% extends "cisoaas/_base.html" %}
+
+{% block title %}Module Library{% endblock %}
+{% block topbar_title %}Module Library{% endblock %}
+{% block topbar_subtitle %}Shared training catalogue for all SME clients{% endblock %}
+
+{% block content %}
+<div class="welcome-row">
+    <div>
+        <div class="welcome-title">Training Modules</div>
+        <div class="welcome-subtitle">{{ modules|length }} module{{ 's' if modules|length != 1 else '' }} in the catalogue &middot; Assign to organisations from the Organisation Detail page</div>
+    </div>
+    <button type="button" class="btn btn-primary" onclick="document.getElementById('create-module-modal').classList.add('open')">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        Create Module
+    </button>
+</div>
+
+<div class="card">
+    {% if modules %}
+    <table>
+        <thead>
+            <tr>
+                <th>Module</th>
+                <th>Topic</th>
+                <th>Duration</th>
+                <th>Assigned To</th>
+                <th></th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for m in modules %}
+            <tr>
+                <td>
+                    <div class="module-cell">
+                        <div class="module-icon">
+                            <svg viewBox="0 0 24 24"><path d="M4 4.5A2.5 2.5 0 0 1 6.5 2H20v16H6.5A2.5 2.5 0 0 0 4 20.5v-16z"/><path d="M4 19.5V4.5"/></svg>
+                        </div>
+                        <span class="org-name">{{ m.title }}</span>
+                    </div>
+                </td>
+                <td><span class="topic-pill {{ m.topic_class }}">{{ m.topic }}</span></td>
+                <td>
+                    {{ m.duration_display or '—' }}
+                    {% if m.video_count %}<div class="muted" style="font-size: 11px;">{{ m.video_count }} video{{ 's' if m.video_count != 1 else '' }}</div>{% endif %}
+                </td>
+                <td>
+                    <div class="assigned-cell">
+                        <svg viewBox="0 0 24 24"><path d="M4 4.5A2.5 2.5 0 0 1 6.5 2H20v16H6.5A2.5 2.5 0 0 0 4 20.5v-16z"/></svg>
+                        {% if m.assigned_count > 0 %}{{ m.assigned_count }} SME{{ 's' if m.assigned_count != 1 else '' }}{% else %}<span class="muted">Not assigned</span>{% endif %}
+                    </div>
+                </td>
+                <td style="text-align: right;">
+                    <a href="{{ url_for('cisoaas.module_detail', module_id=m.id) }}" class="link-action">Edit</a>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+    <div class="empty-state">
+        <svg viewBox="0 0 24 24"><path d="M4 4.5A2.5 2.5 0 0 1 6.5 2H20v16H6.5A2.5 2.5 0 0 0 4 20.5v-16z"/><path d="M4 19.5V4.5"/></svg>
+        <div class="empty-state-title">No modules yet</div>
+        <div class="empty-state-text">Click "Create Module" above to add the first module to the shared library.</div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block modals %}
+<div class="modal-overlay" id="create-module-modal">
+    <div class="modal">
+        <div class="modal-header">
+            <div class="modal-title">Create Module</div>
+            <button type="button" class="modal-close" onclick="document.getElementById('create-module-modal').classList.remove('open')">&times;</button>
+        </div>
+        <form method="POST" action="{{ url_for('cisoaas.create_module') }}">
+            <div class="modal-body">
+                <div class="form-group">
+                    <label for="title">Module Title</label>
+                    <input type="text" id="title" name="title" placeholder="e.g. Ransomware Prevention" required>
+                </div>
+                <div class="form-group">
+                    <label for="topic">Topic</label>
+                    <select id="topic" name="topic" required>
+                        <option value="" disabled selected>Select a topic...</option>
+                        {% for t in topic_choices %}
+                        <option value="{{ t }}">{{ t }}</option>
+                        {% endfor %}
+                    </select>
+                    <div class="form-hint">Used for AI-assisted quiz generation</div>
+                </div>
+                <div class="form-group">
+                    <label>Videos <span class="muted">(optional, add as many as you need)</span></label>
+                    <div id="video-rows">
+                        <div class="video-input-row">
+                            <input type="text" name="video_title" placeholder="Video title (optional)" class="video-title-input">
+                            <input type="text" name="video_url" placeholder="https://youtube.com/watch?v=..." class="video-url-input">
+                            <input type="text" name="video_duration" placeholder="min" class="video-duration-input">
+                            <button type="button" class="video-input-row-remove" onclick="removeVideoRow(this)">&times;</button>
+                        </div>
+                    </div>
+                    <button type="button" class="add-video-row-btn" onclick="addVideoRow()">+ Add another video</button>
+                    <div class="form-hint">Assign modules to organisations separately from the Organisation Detail page</div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" onclick="document.getElementById('create-module-modal').classList.remove('open')">Cancel</button>
+                <button type="submit" class="btn btn-primary">Add to Library</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+function addVideoRow() {
+    var container = document.getElementById('video-rows');
+    var row = document.createElement('div');
+    row.className = 'video-input-row';
+    row.innerHTML =
+        '<input type="text" name="video_title" placeholder="Video title (optional)" class="video-title-input">' +
+        '<input type="text" name="video_url" placeholder="https://youtube.com/watch?v=..." class="video-url-input">' +
+        '<input type="text" name="video_duration" placeholder="min" class="video-duration-input">' +
+        '<button type="button" class="video-input-row-remove" onclick="removeVideoRow(this)">&times;</button>';
+    container.appendChild(row);
+}
+
+function removeVideoRow(btn) {
+    var row = btn.closest('.video-input-row');
+    var rows = document.querySelectorAll('#video-rows .video-input-row');
+    if (rows.length > 1) {
+        row.remove();
+    } else {
+        // Keep at least one row visible; a module can still be created
+        // with zero videos by leaving the URL blank.
+        row.querySelectorAll('input').forEach(function (i) { i.value = ''; });
+    }
+}
+</script>
+{% endblock %}

@@ -1,0 +1,196 @@
+{% extends "cisoaas/_base.html" %}
+
+{% block title %}Overview{% endblock %}
+{% block topbar_title %}CISOaaS Overview{% endblock %}
+
+{% block content %}
+<div class="welcome-row">
+    <div>
+        <div class="welcome-title">Welcome back{% if session.get('email') %}, {{ session.get('email').split('@')[0] }}{% endif %}.</div>
+        <div class="welcome-subtitle">You are managing {{ stats.sme_clients }} active SME client{{ 's' if stats.sme_clients != 1 else '' }}.</div>
+    </div>
+    <button type="button" class="btn btn-primary" onclick="document.getElementById('onboard-modal').classList.add('open')">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        Onboard New SME
+    </button>
+</div>
+
+<div class="stat-grid">
+    <div class="stat-card">
+        <div class="stat-card-top">
+            <div class="stat-label">SME Clients</div>
+            <div class="stat-icon"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/></svg></div>
+        </div>
+        <div class="stat-value">{{ stats.sme_clients }}</div>
+        <div class="stat-note">Active organisations</div>
+    </div>
+
+    <div class="stat-card">
+        <div class="stat-card-top">
+            <div class="stat-label">Total Employees</div>
+            <div class="stat-icon"><svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></div>
+        </div>
+        <div class="stat-value">{{ stats.total_employees }}</div>
+        <div class="stat-note">Across all clients</div>
+    </div>
+
+    <div class="stat-card">
+        <div class="stat-card-top">
+            <div class="stat-label">Avg Completion</div>
+            <div class="stat-icon"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="4"/></svg></div>
+        </div>
+        {% if stats.avg_completion is none %}
+            <div class="stat-value muted">—</div>
+            <div class="stat-note">Not tracked yet</div>
+        {% else %}
+            <div class="stat-value accent">{{ stats.avg_completion }}%</div>
+            <div class="stat-note">Platform-wide</div>
+        {% endif %}
+    </div>
+
+    <div class="stat-card">
+        <div class="stat-card-top">
+            <div class="stat-label">Module Library</div>
+            <div class="stat-icon"><svg viewBox="0 0 24 24"><path d="M4 4.5A2.5 2.5 0 0 1 6.5 2H20v16H6.5A2.5 2.5 0 0 0 4 20.5v-16z"/></svg></div>
+        </div>
+        <div class="stat-value">{{ stats.module_count }}</div>
+        <div class="stat-note">Training modules</div>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header">
+        <div>
+            <div class="card-title">Onboarded Organisations</div>
+            <div class="card-subtitle">Click any row to view organisation detail</div>
+        </div>
+    </div>
+
+    {% if organisations %}
+    <table>
+        <thead>
+            <tr>
+                <th>Organisation</th>
+                <th>Domain</th>
+                <th>Employees</th>
+                <th>Completion</th>
+                <th>Modules</th>
+                <th>Status</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for org in organisations %}
+            <tr class="row-link" onclick="window.location='{{ url_for('cisoaas.org_detail', org_id=org.id) }}'">
+                <td>
+                    <div class="org-name">{{ org.name }}</div>
+                    <div class="org-admin">Admin: {{ org.admin_name or 'Not yet assigned' }}</div>
+                </td>
+                <td>
+                    <div class="domain-cell">
+                        <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+                        {{ org.domain }}
+                    </div>
+                </td>
+                <td>{{ org.employee_count }}</td>
+                <td>
+                    {% if org.completion_pct is none %}
+                        <span class="muted">Not tracked yet</span>
+                    {% else %}
+                        <div class="progress-cell">
+                            <div class="progress-track"><div class="progress-fill" style="width: {{ org.completion_pct }}%"></div></div>
+                            {{ org.completion_pct }}%
+                        </div>
+                    {% endif %}
+                </td>
+                <td>{{ org.module_count }}</td>
+                <td><span class="badge badge-active">Active</span></td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+    <div class="empty-state">
+        <svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+        <div class="empty-state-title">No SMEs onboarded yet</div>
+        <div class="empty-state-text">Click "Onboard New SME" above to create your first client organisation and its admin account.</div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block modals %}
+<div class="modal-overlay" id="onboard-modal">
+    <div class="modal">
+        <div class="modal-header">
+            <div class="modal-title">Onboard New SME</div>
+            <button type="button" class="modal-close" onclick="document.getElementById('onboard-modal').classList.remove('open')">&times;</button>
+        </div>
+        <form method="POST" action="{{ url_for('cisoaas.onboard') }}">
+            <div class="modal-body">
+                <div class="form-section-label">1 — Organisation Details</div>
+                <div class="form-group">
+                    <label for="company_name">Company Name</label>
+                    <input type="text" id="company_name" name="company_name" placeholder="e.g. Apex Logistics Pte Ltd" required>
+                </div>
+                <div class="form-group">
+                    <label for="domain">Email Domain</label>
+                    <input type="text" id="domain" name="domain" placeholder="e.g. apexlogistics.sg" required>
+                    <div class="form-hint">Used to verify employee emails on self-registration</div>
+                </div>
+
+                <div class="form-section-label">2 — SME Admin Account</div>
+                <div class="form-group">
+                    <label for="admin_name">Admin Full Name</label>
+                    <input type="text" id="admin_name" name="admin_name" placeholder="e.g. Linda Toh Mei Ling" required>
+                </div>
+                <div class="form-group">
+                    <label for="admin_email">Admin Email Address</label>
+                    <input type="email" id="admin_email" name="admin_email" placeholder="e.g. l.toh@apexlogistics.sg" required>
+                </div>
+                <div class="form-group">
+                    <label for="temp_password">Temporary Password</label>
+                    <div class="password-row">
+                        <input type="password" id="temp_password" name="temp_password" required minlength="8" autocomplete="new-password">
+                        <button type="button" class="btn-icon" title="Show/hide password" onclick="toggleTempPasswordVisibility()">
+                            <svg id="temp-password-eye" viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                        </button>
+                        <button type="button" class="btn-icon" title="Generate password" onclick="generatePassword()">
+                            <svg viewBox="0 0 24 24"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
+                        </button>
+                    </div>
+                    <div class="info-box">The admin will be prompted to set a new password on first login. Share these credentials securely — do not send via unencrypted email.</div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" onclick="document.getElementById('onboard-modal').classList.remove('open')">Cancel</button>
+                <button type="submit" class="btn btn-primary">Create Organisation &amp; Admin Account</button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+    function generatePassword() {
+        const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789';
+        let pw = '';
+        for (let i = 0; i < 12; i++) {
+            pw += chars[Math.floor(Math.random() * chars.length)];
+        }
+        document.getElementById('temp_password').value = pw;
+    }
+
+    function toggleTempPasswordVisibility() {
+        const input = document.getElementById('temp_password');
+        const icon = document.getElementById('temp-password-eye');
+        if (input.type === 'password') {
+            input.type = 'text';
+            icon.innerHTML = '<path d="M17.94 17.94A10.94 10.94 0 0 1 12 20c-7 0-11-8-11-8a18.5 18.5 0 0 1 5.06-5.94M9.9 4.24A10.94 10.94 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19M14.12 14.12a3 3 0 1 1-4.24-4.24" /><line x1="1" y1="1" x2="23" y2="23"/>';
+        } else {
+            input.type = 'password';
+            icon.innerHTML = '<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>';
+        }
+    }
+</script>
+{% endblock %}

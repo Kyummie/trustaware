@@ -1,0 +1,270 @@
+{% extends "cisoaas/_base.html" %}
+
+{% block title %}{{ module.title }}{% endblock %}
+{% block topbar_title %}{{ module.title }}{% endblock %}
+{% block topbar_subtitle %}Module Detail &middot; Videos & Quiz Questions{% endblock %}
+
+{% block content %}
+<a href="{{ url_for('cisoaas.modules') }}" class="breadcrumb">
+    <svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg>
+    Back to Module Library
+</a>
+
+<div class="detail-header">
+    <div>
+        <div class="detail-org-name">{{ module.title }}</div>
+        <div class="detail-org-meta">
+            <span class="topic-pill {{ module.topic_class }}">{{ module.topic }}</span>
+            {% if module.duration_display %} &middot; {{ module.duration_display }}{% endif %}
+            &middot; {{ module.video_count }} video{{ 's' if module.video_count != 1 else '' }}
+            &middot; {{ questions|length }} question{{ 's' if questions|length != 1 else '' }}
+        </div>
+    </div>
+</div>
+
+<div class="section-heading-row">
+    <div class="section-heading">Videos</div>
+    <button type="button" class="btn btn-primary" onclick="document.getElementById('add-video-modal').classList.add('open')">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        Add Video
+    </button>
+</div>
+
+{% if module.videos %}
+{% for v in module.videos %}
+<div class="question-card">
+    <div class="question-card-header">
+        <div class="question-header-left">
+            <div class="question-number">{{ loop.index }}</div>
+            <div>
+                <div class="question-text">{{ v.title or (module.title ~ ' - Video ' ~ loop.index) }}</div>
+                <div class="video-meta">
+                    <a href="{{ v.video_url }}" target="_blank" rel="noopener">{{ v.video_url }}</a>
+                    {% if v.duration_display %} &middot; {{ v.duration_display }}{% endif %}
+                </div>
+            </div>
+        </div>
+        <div class="question-actions">
+            <button type="button" class="question-action" onclick="document.getElementById('edit-video-modal-{{ v.id }}').classList.add('open')">
+                <svg viewBox="0 0 24 24"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+                Edit
+            </button>
+            <form method="POST" action="{{ url_for('cisoaas.delete_video', module_id=module.id, video_id=v.id) }}" style="margin: 0;">
+                <button type="submit" class="question-action danger">
+                    <svg viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>
+                    Delete
+                </button>
+            </form>
+        </div>
+    </div>
+</div>
+{% endfor %}
+{% else %}
+<div class="card">
+    <div class="empty-state">
+        <svg viewBox="0 0 24 24"><path d="M4 4.5A2.5 2.5 0 0 1 6.5 2H20v16H6.5A2.5 2.5 0 0 0 4 20.5v-16z"/><path d="M4 19.5V4.5"/></svg>
+        <div class="empty-state-title">No videos yet</div>
+        <div class="empty-state-text">Click "Add Video" above to add the first video for {{ module.title }}. You can add as many as you need.</div>
+    </div>
+</div>
+{% endif %}
+
+<div class="section-heading-row" style="margin-top: 32px;">
+    <div class="section-heading">Quiz Questions</div>
+    <div class="detail-header-actions">
+        <form method="POST" action="{{ url_for('cisoaas.regenerate_all_questions', module_id=module.id) }}" style="margin: 0;">
+            <button type="submit" class="btn btn-secondary">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
+                Regenerate All
+            </button>
+        </form>
+        <button type="button" class="btn btn-primary" onclick="document.getElementById('add-question-modal').classList.add('open')">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            Add Question
+        </button>
+    </div>
+</div>
+
+{% if questions %}
+{% for q in questions %}
+<div class="question-card">
+    <div class="question-card-header">
+        <div class="question-header-left">
+            <div class="question-number">{{ loop.index }}</div>
+            <div class="question-text">{{ q.question_text }}</div>
+        </div>
+        <div class="question-actions">
+            <button type="button" class="question-action" onclick="document.getElementById('edit-question-modal-{{ q.id }}').classList.add('open')">
+                <svg viewBox="0 0 24 24"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+                Edit
+            </button>
+            <form method="POST" action="{{ url_for('cisoaas.regenerate_question', module_id=module.id, question_id=q.id) }}" style="margin: 0;">
+                <button type="submit" class="question-action">
+                    <svg viewBox="0 0 24 24"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
+                    Regenerate
+                </button>
+            </form>
+            <form method="POST" action="{{ url_for('cisoaas.delete_question', module_id=module.id, question_id=q.id) }}" style="margin: 0;">
+                <button type="submit" class="question-action danger">
+                    <svg viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>
+                    Delete
+                </button>
+            </form>
+        </div>
+    </div>
+
+    {% for letter, opt in q.labeled_options %}
+    <div class="option-row {% if opt == q.correct_answer %}correct{% endif %}">
+        <div class="option-content">
+            <span class="option-letter">{{ letter }}</span>
+            {{ opt }}
+        </div>
+        {% if opt == q.correct_answer %}<span class="correct-tag">CORRECT</span>{% endif %}
+    </div>
+    {% endfor %}
+</div>
+{% endfor %}
+{% else %}
+<div class="card">
+    <div class="empty-state">
+        <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 1 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12" y2="17"/></svg>
+        <div class="empty-state-title">No questions yet</div>
+        <div class="empty-state-text">Click "Add Question" above to write the first quiz question for {{ module.title }}, or use "Regenerate All" once questions exist to have AI draft replacements.</div>
+    </div>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block modals %}
+<div class="modal-overlay" id="add-video-modal">
+    <div class="modal">
+        <div class="modal-header">
+            <div class="modal-title">Add Video</div>
+            <button type="button" class="modal-close" onclick="document.getElementById('add-video-modal').classList.remove('open')">&times;</button>
+        </div>
+        <form method="POST" action="{{ url_for('cisoaas.add_video', module_id=module.id) }}">
+            <div class="modal-body">
+                <div class="form-group">
+                    <label for="video_title">Title <span class="muted">(optional)</span></label>
+                    <input type="text" id="video_title" name="video_title" placeholder="e.g. Part 1: Spotting Fake Emails">
+                </div>
+                <div class="form-group">
+                    <label for="video_url">Video URL</label>
+                    <input type="text" id="video_url" name="video_url" placeholder="https://youtube.com/watch?v=..." required>
+                </div>
+                <div class="form-group">
+                    <label for="video_duration">Duration <span class="muted">(optional)</span></label>
+                    <input type="text" id="video_duration" name="video_duration" placeholder="e.g. 10 min">
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" onclick="document.getElementById('add-video-modal').classList.remove('open')">Cancel</button>
+                <button type="submit" class="btn btn-primary">Add Video</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+{% for v in module.videos %}
+<div class="modal-overlay" id="edit-video-modal-{{ v.id }}">
+    <div class="modal">
+        <div class="modal-header">
+            <div class="modal-title">Edit Video</div>
+            <button type="button" class="modal-close" onclick="document.getElementById('edit-video-modal-{{ v.id }}').classList.remove('open')">&times;</button>
+        </div>
+        <form method="POST" action="{{ url_for('cisoaas.edit_video', module_id=module.id, video_id=v.id) }}">
+            <div class="modal-body">
+                <div class="form-group">
+                    <label for="video_title_{{ v.id }}">Title <span class="muted">(optional)</span></label>
+                    <input type="text" id="video_title_{{ v.id }}" name="video_title" value="{{ v.title or '' }}">
+                </div>
+                <div class="form-group">
+                    <label for="video_url_{{ v.id }}">Video URL</label>
+                    <input type="text" id="video_url_{{ v.id }}" name="video_url" value="{{ v.video_url }}" required>
+                </div>
+                <div class="form-group">
+                    <label for="video_duration_{{ v.id }}">Duration <span class="muted">(optional)</span></label>
+                    <input type="text" id="video_duration_{{ v.id }}" name="video_duration" value="{{ v.duration_minutes or '' }}">
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" onclick="document.getElementById('edit-video-modal-{{ v.id }}').classList.remove('open')">Cancel</button>
+                <button type="submit" class="btn btn-primary">Save Changes</button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endfor %}
+
+<div class="modal-overlay" id="add-question-modal">
+    <div class="modal">
+        <div class="modal-header">
+            <div class="modal-title">Add Question</div>
+            <button type="button" class="modal-close" onclick="document.getElementById('add-question-modal').classList.remove('open')">&times;</button>
+        </div>
+        <form method="POST" action="{{ url_for('cisoaas.create_question', module_id=module.id) }}">
+            <div class="modal-body">
+                <div class="form-group">
+                    <label for="question_text">Question</label>
+                    <input type="text" id="question_text" name="question_text" placeholder="e.g. What is the clearest sign of a phishing email?" required>
+                </div>
+                <div class="form-group">
+                    <label>Options (choose the correct one)</label>
+                    <div class="option-input-row">
+                        <input type="radio" name="correct_option" value="a" required>
+                        <input type="text" name="option_a" placeholder="Option A" required>
+                    </div>
+                    <div class="option-input-row">
+                        <input type="radio" name="correct_option" value="b">
+                        <input type="text" name="option_b" placeholder="Option B" required>
+                    </div>
+                    <div class="option-input-row">
+                        <input type="radio" name="correct_option" value="c">
+                        <input type="text" name="option_c" placeholder="Option C" required>
+                    </div>
+                    <div class="option-input-row">
+                        <input type="radio" name="correct_option" value="d">
+                        <input type="text" name="option_d" placeholder="Option D" required>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" onclick="document.getElementById('add-question-modal').classList.remove('open')">Cancel</button>
+                <button type="submit" class="btn btn-primary">Add Question</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+{% for q in questions %}
+<div class="modal-overlay" id="edit-question-modal-{{ q.id }}">
+    <div class="modal">
+        <div class="modal-header">
+            <div class="modal-title">Edit Question</div>
+            <button type="button" class="modal-close" onclick="document.getElementById('edit-question-modal-{{ q.id }}').classList.remove('open')">&times;</button>
+        </div>
+        <form method="POST" action="{{ url_for('cisoaas.edit_question', module_id=module.id, question_id=q.id) }}">
+            <div class="modal-body">
+                <div class="form-group">
+                    <label for="question_text_{{ q.id }}">Question</label>
+                    <input type="text" id="question_text_{{ q.id }}" name="question_text" value="{{ q.question_text }}" required>
+                </div>
+                <div class="form-group">
+                    <label>Options (choose the correct one)</label>
+                    {% for letter, opt in q.labeled_options %}
+                    <div class="option-input-row">
+                        <input type="radio" name="correct_option" value="{{ letter|lower }}" {% if opt == q.correct_answer %}checked{% endif %} required>
+                        <input type="text" name="option_{{ letter|lower }}" value="{{ opt }}" required>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" onclick="document.getElementById('edit-question-modal-{{ q.id }}').classList.remove('open')">Cancel</button>
+                <button type="submit" class="btn btn-primary">Save Changes</button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endfor %}
+{% endblock %}

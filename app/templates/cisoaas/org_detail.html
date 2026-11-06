@@ -1,0 +1,259 @@
+{% extends "cisoaas/_base.html" %}
+
+{% block title %}{{ org.name }}{% endblock %}
+{% block topbar_title %}{{ org.name }}{% endblock %}
+{% block topbar_subtitle %}{{ org.domain }}{% if org.onboarded_display %} &middot; Onboarded {{ org.onboarded_display }}{% endif %}{% endblock %}
+
+{% block content %}
+<a href="{{ url_for('cisoaas.dashboard') }}" class="breadcrumb">
+    <svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg>
+    Back to Overview
+</a>
+
+<div class="detail-header">
+    <div>
+        <div class="detail-org-name">
+            {{ org.name }}
+            <span class="badge badge-active">Active</span>
+        </div>
+        <div class="detail-org-meta">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+            {{ org.domain }}
+            {% if admin %} &middot; Admin: {{ admin.full_name }} ({{ admin.email }}){% endif %}
+        </div>
+    </div>
+</div>
+
+<div class="stat-grid">
+    <div class="stat-card">
+        <div class="stat-card-top">
+            <div class="stat-label">Employees</div>
+            <div class="stat-icon"><svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg></div>
+        </div>
+        <div class="stat-value">{{ employees|length }}</div>
+        <div class="stat-note">Onboarded so far</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-card-top">
+            <div class="stat-label">Completion</div>
+            <div class="stat-icon"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="4"/></svg></div>
+        </div>
+        <div class="stat-value muted">—</div>
+        <div class="stat-note">Not tracked yet</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-card-top">
+            <div class="stat-label">Modules Assigned</div>
+            <div class="stat-icon"><svg viewBox="0 0 24 24"><path d="M4 4.5A2.5 2.5 0 0 1 6.5 2H20v16H6.5A2.5 2.5 0 0 0 4 20.5v-16z"/></svg></div>
+        </div>
+        <div class="stat-value">0</div>
+        <div class="stat-note">Module library coming soon</div>
+    </div>
+</div>
+
+<div class="card">
+    <div class="tab-row">
+        <div class="tab-list">
+            <button type="button" class="tab-btn active" data-tab="employees-panel" onclick="switchTab(this)">Employees ({{ employees|length }})</button>
+            <button type="button" class="tab-btn" data-tab="modules-panel" onclick="switchTab(this)">Assigned Modules ({{ module_count }})</button>
+        </div>
+        <button type="button" class="btn btn-secondary tab-action" data-for="employees-panel" onclick="document.getElementById('add-employee-modal').classList.add('open')">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            Add Employee
+        </button>
+        <button type="button" class="btn btn-secondary tab-action" data-for="modules-panel" style="display: none;" onclick="document.getElementById('assign-module-modal').classList.add('open')">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            Assign Module
+        </button>
+    </div>
+
+    <div id="employees-panel" class="tab-panel active">
+        <div class="card-header">
+            <div>
+                <div class="card-subtitle">Everyone onboarded under {{ org.name }}</div>
+            </div>
+        </div>
+
+        {% if employees %}
+        <table>
+            <thead>
+                <tr>
+                    <th>Name</th>
+                    <th>Email</th>
+                    <th>Completion</th>
+                    <th>Status</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for emp in employees %}
+                <tr>
+                    <td>
+                        <div class="name-cell">
+                            <div class="avatar-sm">{{ emp.initials }}</div>
+                            <span class="org-name">{{ emp.full_name or '—' }}</span>
+                        </div>
+                    </td>
+                    <td>{{ emp.email }}</td>
+                    <td><span class="muted">Not tracked yet</span></td>
+                    <td><span class="badge badge-active">Active</span></td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+        <div class="empty-state">
+            <svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
+            <div class="empty-state-title">No employees yet</div>
+            <div class="empty-state-text">Click "Add Employee" above to onboard the first employee for {{ org.name }}.</div>
+        </div>
+        {% endif %}
+    </div>
+
+    <div id="modules-panel" class="tab-panel">
+        {% if assigned_modules %}
+        <table>
+            <thead>
+                <tr>
+                    <th>Module</th>
+                    <th>Topic</th>
+                    <th>Duration</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for m in assigned_modules %}
+                <tr>
+                    <td>
+                        <a href="{{ url_for('cisoaas.module_detail', module_id=m.id) }}" class="org-name" style="text-decoration: none;">{{ m.title }}</a>
+                    </td>
+                    <td><span class="topic-pill {{ m.topic_class }}">{{ m.topic }}</span></td>
+                    <td>{{ m.duration_display or '—' }}</td>
+                    <td>
+                        <form method="POST" action="{{ url_for('cisoaas.unassign_module', org_id=org.id, module_id=m.id) }}" style="margin: 0;">
+                            <button type="submit" class="btn btn-secondary" style="padding: 6px 12px; font-size: 12px;">Remove</button>
+                        </form>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+        <div class="empty-state">
+            <svg viewBox="0 0 24 24"><path d="M4 4.5A2.5 2.5 0 0 1 6.5 2H20v16H6.5A2.5 2.5 0 0 0 4 20.5v-16z"/><path d="M4 19.5V4.5"/></svg>
+            <div class="empty-state-title">No modules assigned yet</div>
+            <div class="empty-state-text">Click "Assign Module" above to give {{ org.name }} access to a module from the shared library.</div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
+
+{% block modals %}
+<div class="modal-overlay" id="add-employee-modal">
+    <div class="modal">
+        <div class="modal-header">
+            <div class="modal-title">Add Employee — {{ org.name }}</div>
+            <button type="button" class="modal-close" onclick="document.getElementById('add-employee-modal').classList.remove('open')">&times;</button>
+        </div>
+        <form method="POST" action="{{ url_for('cisoaas.add_employee', org_id=org.id) }}">
+            <div class="modal-body">
+                <div class="form-group">
+                    <label for="full_name">Full Name</label>
+                    <input type="text" id="full_name" name="full_name" placeholder="e.g. Sarah Lim" required>
+                </div>
+                <div class="form-group">
+                    <label for="email">Email Address</label>
+                    <input type="email" id="email" name="email" placeholder="e.g. s.lim@{{ org.domain }}" required>
+                    <div class="form-hint">Should match the organisation's domain ({{ org.domain }})</div>
+                </div>
+                <div class="form-group">
+                    <label for="temp_password">Temporary Password</label>
+                    <div class="password-row">
+                        <input type="password" id="temp_password" name="temp_password" required minlength="8" autocomplete="new-password">
+                        <button type="button" class="btn-icon" title="Show/hide password" onclick="toggleTempPasswordVisibility()">
+                            <svg id="temp-password-eye" viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                        </button>
+                        <button type="button" class="btn-icon" title="Generate password" onclick="generatePassword()">
+                            <svg viewBox="0 0 24 24"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
+                        </button>
+                    </div>
+                    <div class="info-box">The employee will be prompted to set a new password on first login. Share these credentials securely — do not send via unencrypted email.</div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" onclick="document.getElementById('add-employee-modal').classList.remove('open')">Cancel</button>
+                <button type="submit" class="btn btn-primary">Add Employee</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="modal-overlay" id="assign-module-modal">
+    <div class="modal">
+        <div class="modal-header">
+            <div class="modal-title">Assign Module to {{ org.name }}</div>
+            <button type="button" class="modal-close" onclick="document.getElementById('assign-module-modal').classList.remove('open')">&times;</button>
+        </div>
+        {% if available_modules %}
+        <form method="POST" action="{{ url_for('cisoaas.assign_module', org_id=org.id) }}">
+            <div class="modal-body">
+                <div class="form-group">
+                    <label for="module_id">Module</label>
+                    <select id="module_id" name="module_id" required>
+                        {% for m in available_modules %}
+                        <option value="{{ m.id }}">{{ m.title }} ({{ m.topic }})</option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" onclick="document.getElementById('assign-module-modal').classList.remove('open')">Cancel</button>
+                <button type="submit" class="btn btn-primary">Assign Module</button>
+            </div>
+        </form>
+        {% else %}
+        <div class="modal-body">
+            <p style="font-size: 13px; color: #718096;">Every module currently in the library is already assigned to {{ org.name }}. Add a new module from the Module Library page first.</p>
+        </div>
+        <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" onclick="document.getElementById('assign-module-modal').classList.remove('open')">Close</button>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+    function switchTab(btn) {
+        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+        document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+        btn.classList.add('active');
+        document.getElementById(btn.dataset.tab).classList.add('active');
+        document.querySelectorAll('.tab-action').forEach(a => {
+            a.style.display = (a.dataset.for === btn.dataset.tab) ? '' : 'none';
+        });
+    }
+
+    function generatePassword() {
+        const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789';
+        let pw = '';
+        for (let i = 0; i < 12; i++) {
+            pw += chars[Math.floor(Math.random() * chars.length)];
+        }
+        document.getElementById('temp_password').value = pw;
+    }
+
+    function toggleTempPasswordVisibility() {
+        const input = document.getElementById('temp_password');
+        const icon = document.getElementById('temp-password-eye');
+        if (input.type === 'password') {
+            input.type = 'text';
+            icon.innerHTML = '<path d="M17.94 17.94A10.94 10.94 0 0 1 12 20c-7 0-11-8-11-8a18.5 18.5 0 0 1 5.06-5.94M9.9 4.24A10.94 10.94 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19M14.12 14.12a3 3 0 1 1-4.24-4.24" /><line x1="1" y1="1" x2="23" y2="23"/>';
+        } else {
+            input.type = 'password';
+            icon.innerHTML = '<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>';
+        }
+    }
+</script>
+{% endblock %}
