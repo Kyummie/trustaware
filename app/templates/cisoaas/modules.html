@@ -52,6 +52,10 @@
                 </td>
                 <td style="text-align: right;">
                     <a href="{{ url_for('cisoaas.module_detail', module_id=m.id) }}" class="link-action">Edit</a>
+                    <form method="post" action="{{ url_for('cisoaas.delete_module', module_id=m.id) }}" class="inline-form"
+                        onsubmit="return confirm('Delete this module? This also removes its videos, quiz questions and organisation assignments. This cannot be undone.');">
+                        <button type="submit" class="link-action delete-btn">Delete</button>
+                    </form>
                 </td>
             </tr>
             {% endfor %}

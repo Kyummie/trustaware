@@ -61,7 +61,7 @@ def login():
     if profile['role'] == 'employee':
         return redirect(url_for('employee.dashboard'))
     elif profile['role'] == 'sme_admin':
-        return redirect(url_for('admin.dashboard'))
+        return redirect(url_for('admin.admin_dashboard'))
     elif profile['role'] == 'cisoaas':
         return redirect(url_for('cisoaas.dashboard'))
     else:

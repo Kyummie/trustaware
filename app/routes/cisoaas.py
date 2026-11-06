@@ -3,9 +3,9 @@ import os
 import re
 from datetime import datetime
 
-from flask import Blueprint, render_template, request, redirect, url_for, flash
+from flask import Blueprint, render_template, request, redirect, url_for, flash, abort
 
-from app.decorators import role_required
+from app.decorators import role_required, login_required
 from app.supabase_client import supabase_admin
 
 try:
@@ -747,3 +747,31 @@ def regenerate_all_questions(module_id):
         flash(f'Regenerated all {len(questions)} questions with AI. Review them below and edit if needed.', 'success')
 
     return redirect(url_for('cisoaas.module_detail', module_id=module_id))
+
+@cisoaas_bp.route('/modules/<module_id>/delete', methods=['POST'])
+@login_required
+@role_required('cisoaas')
+def delete_module(module_id):
+    back = request.referrer or '/cisoaas'
+
+    found = supabase_admin.table('training_modules').select('id, title').eq('id', module_id).limit(1).execute()
+    if not found.data:
+        abort(404)
+    title = found.data[0]['title']
+
+    done = supabase_admin.table('completion_records').select('id').eq('module_id', module_id).limit(1).execute()
+    if done.data:
+        flash(f'"{title}" cannot be deleted because employees have completed it. Completion records are audit evidence and are kept.', 'error')
+        return redirect(back)
+
+    try:
+        # Remove everything that points to this module, then the module itself
+        for table in ('module_assignments', 'quiz_attempts', 'quiz_questions', 'module_videos'):
+            supabase_admin.table(table).delete().eq('module_id', module_id).execute()
+        supabase_admin.table('training_modules').delete().eq('id', module_id).execute()
+    except Exception:
+        flash(f'Could not delete "{title}". Nothing else was changed.', 'error')
+        return redirect(back)
+
+    flash(f'"{title}" has been deleted.', 'success')
+    return redirect(back)
