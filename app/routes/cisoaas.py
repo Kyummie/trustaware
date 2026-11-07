@@ -1,10 +1,9 @@
 import json
 import os
-import anthropic
 import re
 from datetime import datetime
 
-from flask import Blueprint, render_template, request, redirect, url_for, flash, abort, render_template
+from flask import Blueprint, render_template, request, redirect, url_for, flash, abort
 
 from app.decorators import role_required, login_required
 from app.supabase_client import supabase_admin
@@ -15,6 +14,10 @@ try:
 except ImportError:
     anthropic = None
 
+
+AI_MODEL = 'claude-sonnet-5-5'
+MAX_TRANSCRIPT_CHARS = 30000
+JSON_EXAMPLE = '{"question_text": "...", "option_a": "...", "option_b": "...", "option_c": "...", "option_d": "...", "correct_option": "a"}'
 
 TOPIC_COLORS = {
     'Email Security': 'topic-blue',
@@ -116,15 +119,31 @@ def _generate_quiz_question(topic, title):
         f'correct_answer must be an exact copy of one of the four options.'
     )
     message = client.messages.create(
-        model='claude-sonnet-4-5',
+        model=AI_MODEL,
         max_tokens=500,
         messages=[{'role': 'user', 'content': prompt}],
     )
     raw = message.content[0].text.strip()
+    raw = re.sub(r'^```(?:json)?|```$', '', raw, flags=re.MULTILINE).strip()
     data = json.loads(raw)
-    if data.get('correct_answer') not in (data.get('options') or []):
-        raise ValueError('The model did not return a correct_answer matching one of its own options.')
-    return data
+
+    question_text = str(data.get('question_text', '')).strip()
+    options = [str(o).strip() for o in (data.get('options') or [])]
+    correct = str(data.get('correct_answer', '')).strip()
+    if not question_text or len(options) != 4 or len(set(options)) != 4 or correct not in options:
+        raise ValueError('The model did not return a question with four different options and a matching correct answer.')
+    return {'question_text': question_text, 'options': options, 'correct_answer': correct}
+
+
+def _row_from_generated(data):
+    """Convert one AI question into the column layout of the quiz_questions
+    table: option_a to option_d plus correct_option as a single letter."""
+    options = data['options']
+    row = {'question_text': data['question_text']}
+    for key, text in zip(OPTION_KEYS, options):
+        row[f'option_{key}'] = text
+    row['correct_option'] = OPTION_KEYS[options.index(data['correct_answer'])]
+    return row
 
 
 cisoaas_bp = Blueprint('cisoaas', __name__, url_prefix='/cisoaas')
@@ -517,14 +536,19 @@ def module_detail(module_id):
     )
     questions = questions_result.data or []
 
+    # The table stores four option columns plus the correct letter. Build the
+    # shape the page expects: a list of options and the correct option's text.
     question_rows = []
     for q in questions:
-        opts = q.get('options') or []
+        opts = [q.get(f'option_{k}') or '' for k in OPTION_KEYS]
+        correct_key = q.get('correct_option')
+        correct_text = opts[OPTION_KEYS.index(correct_key)] if correct_key in OPTION_KEYS else None
         question_rows.append({
             'id': q['id'],
             'question_text': q.get('question_text'),
             'options': opts,
-            'correct_answer': q.get('correct_answer'),
+            'correct_answer': correct_text,
+            'correct_option': correct_key,
             'labeled_options': list(zip(OPTION_LETTERS, opts)),
         })
 
@@ -614,13 +638,18 @@ def delete_video(module_id, video_id):
 
 
 def _read_question_form():
+    """Read the add/edit question form. Returns a dict in the quiz_questions
+    table layout (option_a to option_d plus correct_option), or None if
+    anything is missing."""
     question_text = request.form.get('question_text', '').strip()
     options = [request.form.get(f'option_{k}', '').strip() for k in OPTION_KEYS]
     correct_key = request.form.get('correct_option', '')
     if not question_text or not all(options) or correct_key not in OPTION_KEYS:
-        return None, None, None
-    correct_answer = options[OPTION_KEYS.index(correct_key)]
-    return question_text, options, correct_answer
+        return None
+    row = {'question_text': question_text, 'correct_option': correct_key}
+    for key, text in zip(OPTION_KEYS, options):
+        row[f'option_{key}'] = text
+    return row
 
 
 @cisoaas_bp.route('/modules/<module_id>/questions', methods=['POST'])
@@ -629,18 +658,13 @@ def create_question(module_id):
     if not _require_admin_client():
         return redirect(url_for('cisoaas.module_detail', module_id=module_id))
 
-    question_text, options, correct_answer = _read_question_form()
-    if question_text is None:
+    row = _read_question_form()
+    if row is None:
         flash('Please fill in the question, all four options, and mark which one is correct.', 'error')
         return redirect(url_for('cisoaas.module_detail', module_id=module_id))
 
     try:
-        supabase_admin.table('quiz_questions').insert({
-            'module_id': module_id,
-            'question_text': question_text,
-            'options': options,
-            'correct_answer': correct_answer,
-        }).execute()
+        supabase_admin.table('quiz_questions').insert({'module_id': module_id, **row}).execute()
         flash('Question added.', 'success')
     except Exception as e:
         flash(f'Could not add the question: {e}', 'error')
@@ -654,17 +678,13 @@ def edit_question(module_id, question_id):
     if not _require_admin_client():
         return redirect(url_for('cisoaas.module_detail', module_id=module_id))
 
-    question_text, options, correct_answer = _read_question_form()
-    if question_text is None:
+    row = _read_question_form()
+    if row is None:
         flash('Please fill in the question, all four options, and mark which one is correct.', 'error')
         return redirect(url_for('cisoaas.module_detail', module_id=module_id))
 
     try:
-        supabase_admin.table('quiz_questions').update({
-            'question_text': question_text,
-            'options': options,
-            'correct_answer': correct_answer,
-        }).eq('id', question_id).execute()
+        supabase_admin.table('quiz_questions').update(row).eq('id', question_id).execute()
         flash('Question updated.', 'success')
     except Exception as e:
         flash(f'Could not update the question: {e}', 'error')
@@ -696,16 +716,12 @@ def regenerate_question(module_id, question_id):
         return redirect(url_for('cisoaas.modules'))
 
     try:
-        generated = _generate_quiz_question(module.get('topic', ''), module.get('title', ''))
+        row = _row_from_generated(_generate_quiz_question(module.get('topic', ''), module.get('title', '')))
+        supabase_admin.table('quiz_questions').update(row).eq('id', question_id).execute()
     except Exception as e:
         flash(f'Could not regenerate this question with AI ({e}). You can still edit it manually below.', 'error')
         return redirect(url_for('cisoaas.module_detail', module_id=module_id))
 
-    supabase_admin.table('quiz_questions').update({
-        'question_text': generated['question_text'],
-        'options': generated['options'],
-        'correct_answer': generated['correct_answer'],
-    }).eq('id', question_id).execute()
     flash('Question regenerated with AI. Review it below and edit if needed.', 'success')
     return redirect(url_for('cisoaas.module_detail', module_id=module_id))
 
@@ -728,12 +744,8 @@ def regenerate_all_questions(module_id):
     failures = 0
     for q in questions:
         try:
-            generated = _generate_quiz_question(module.get('topic', ''), module.get('title', ''))
-            supabase_admin.table('quiz_questions').update({
-                'question_text': generated['question_text'],
-                'options': generated['options'],
-                'correct_answer': generated['correct_answer'],
-            }).eq('id', q['id']).execute()
+            row = _row_from_generated(_generate_quiz_question(module.get('topic', ''), module.get('title', '')))
+            supabase_admin.table('quiz_questions').update(row).eq('id', q['id']).execute()
         except Exception:
             failures += 1
 
@@ -749,6 +761,7 @@ def regenerate_all_questions(module_id):
         flash(f'Regenerated all {len(questions)} questions with AI. Review them below and edit if needed.', 'success')
 
     return redirect(url_for('cisoaas.module_detail', module_id=module_id))
+
 
 @cisoaas_bp.route('/modules/<module_id>/delete', methods=['POST'])
 @login_required
@@ -777,10 +790,6 @@ def delete_module(module_id):
 
     flash(f'"{title}" has been deleted.', 'success')
     return redirect(back)
-
-AI_MODEL = 'claude-sonnet-5-5'
-MAX_TRANSCRIPT_CHARS = 30000
-JSON_EXAMPLE = '{"question_text": "...", "option_a": "...", "option_b": "...", "option_c": "...", "option_d": "...", "correct_option": "a"}'
 
 
 def _clean_questions(raw_text):
@@ -856,7 +865,8 @@ def generate_questions(module_id):
         reply = client.messages.create(model=AI_MODEL, max_tokens=6000, system=system_prompt,
                                        messages=[{'role': 'user', 'content': user_prompt}])
         questions = _clean_questions(reply.content[0].text)
-    except Exception:
+    except Exception as e:
+        print('AI generation error:', type(e).__name__, str(e)[:300])
         flash('The AI service could not be reached. Nothing was added.', 'error')
         return redirect(back)
 
@@ -868,6 +878,7 @@ def generate_questions(module_id):
         [{**q, 'module_id': module_id} for q in questions]).execute()
     flash(f'Added {len(questions)} questions from the transcript. Review and edit them below.', 'success')
     return redirect(back)
+
 
 @cisoaas_bp.route('/questions/<question_id>/edit', methods=['GET', 'POST'])
 @login_required
