@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Edit question - TrustAware</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/question_edit.css') }}">
+</head>
+<body>
+    <div class="wrap">
+        <a class="back" href="{{ url_for('cisoaas.module_detail', module_id=q.module_id) }}">&larr; Back to module</a>
+        <h1>Edit question</h1>
+        <p class="sub">Change the wording or any option, and tick the correct answer.</p>
+
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% for category, message in messages %}
+            <div class="notice {{ 'good' if category == 'success' else 'warn' }}">{{ message }}</div>
+            {% endfor %}
+        {% endwith %}
+
+        <form method="post" class="panel">
+            <label for="question_text">Question</label>
+            <textarea id="question_text" name="question_text" rows="3" required>{{ q.question_text }}</textarea>
+
+            <p class="hint">Options (choose the correct one)</p>
+            {% for key in ['a', 'b', 'c', 'd'] %}
+            <div class="opt">
+                <input type="radio" name="correct_option" value="{{ key }}" id="c_{{ key }}"
+                       {% if q.correct_option == key %}checked{% endif %} required>
+                <span class="letter">{{ key | upper }}</span>
+                <input type="text" name="option_{{ key }}" value="{{ q['option_' ~ key] }}" required>
+            </div>
+            {% endfor %}
+
+            <div class="actions">
+                <a class="btn btn-ghost" href="{{ url_for('cisoaas.module_detail', module_id=q.module_id) }}">Cancel</a>
+                <button class="btn" type="submit">Save changes</button>
+            </div>
+        </form>
+    </div>
+</body>
+</html>

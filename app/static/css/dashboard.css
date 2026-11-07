@@ -942,6 +942,8 @@ tr.row-link {
     color: #c53030;
 }
 
+a.question-action { text-decoration: none; display: inline-flex; align-items: center; }
+
 .option-row {
     display: flex;
     align-items: center;

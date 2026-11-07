@@ -68,6 +68,16 @@
     </div>
 </div>
 {% endif %}
+<form method="post" action="{{ url_for('cisoaas.generate_questions', module_id=module.id) }}"
+      style="margin-top: 32px;"
+      onsubmit="const b = this.querySelector('button'); b.disabled = true; b.textContent = 'Generating...';">
+    <label for="transcript"><strong>Generate questions from a video transcript</strong></label>
+    <textarea id="transcript" name="transcript" rows="8" style="width:100%; margin:8px 0;"
+              placeholder="Paste the video transcript here. Leave empty to try fetching captions automatically."></textarea>
+    <label for="count">Number of questions</label>
+    <input type="number" id="count" name="count" value="10" min="3" max="20">
+    <button type="submit" class="btn btn-primary">Generate questions with AI</button>
+</form>
 
 <div class="section-heading-row" style="margin-top: 32px;">
     <div class="section-heading">Quiz Questions</div>
@@ -94,10 +104,10 @@
             <div class="question-text">{{ q.question_text }}</div>
         </div>
         <div class="question-actions">
-            <button type="button" class="question-action" onclick="document.getElementById('edit-question-modal-{{ q.id }}').classList.add('open')">
+            <a class="question-action" href="{{ url_for('cisoaas.question_edit_page', question_id=q.id) }}">
                 <svg viewBox="0 0 24 24"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
                 Edit
-            </button>
+            </a>
             <form method="POST" action="{{ url_for('cisoaas.regenerate_question', module_id=module.id, question_id=q.id) }}" style="margin: 0;">
                 <button type="submit" class="question-action">
                     <svg viewBox="0 0 24 24"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
